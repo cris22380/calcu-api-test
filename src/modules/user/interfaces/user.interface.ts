@@ -10,7 +10,6 @@ export interface User extends Document {
   last: string;
   location: string;
   locale: string;
-  gender: string;
   accessToken: string;
   tutorial: Record<string, any>;
   isBusiness: boolean;

@@ -67,8 +67,30 @@ const MockModel = {
     create: jest.fn(),
     findOne: jest.fn(),
     findOneAndUpdate: jest.fn(),
+    findOneAndDelete: jest.fn(),
     exec: jest.fn(),
   },
+};
+
+const mockBuildUserInfo: (user: Record<string, any>) => any = (user) => {
+  const userRegistrationInfo = {
+    email: user.email,
+    first: user.first,
+    last: user.last,
+    location: user.location,
+    locale: user.locale,
+    tutorial: user.tutorial,
+    isBusiness: user.isBusiness,
+    roles: user.roles,
+    collapsed: user.collapsed,
+    emailPrev: user.emailPrev,
+    id: user.id,
+  };
+  return userRegistrationInfo;
+};
+
+const mockBuildDeletedInfo: (user: Record<string, any>) => any = (user) => {
+  return { userDeleted: true, id: user.id };
 };
 
 describe('UserService', () => {
@@ -81,21 +103,14 @@ describe('UserService', () => {
 
     service = module.get<UserService>(UserService);
     model = module.get<Model<User>>(getModelToken('User'));
-
-    // jest.clearAllMocks();
   });
 
   it('should be defined', () => {
-    console.log(MockModel.useValue.create);
     expect(service).toBeDefined();
   });
 
   describe('Creation and update operations', () => {
     it('should insert a new user', async () => {
-      jest.spyOn(model, 'findOne').mockReturnValue({
-        exec: jest.fn().mockResolvedValueOnce(null),
-      } as any);
-
       jest.spyOn(model, 'create').mockImplementationOnce(() =>
         Promise.resolve({
           ...mockUser,
@@ -105,7 +120,7 @@ describe('UserService', () => {
         ...mockUser,
         email: 'newUser@test.com',
       });
-      expect(newUser).toEqual(mockUser);
+      expect(newUser).toEqual(mockBuildUserInfo(mockUser));
     });
 
     it('Should update user data', async () => {
@@ -120,22 +135,25 @@ describe('UserService', () => {
       jest.spyOn(model, 'findOne').mockReturnValue({
         exec: jest
           .fn()
-          .mockResolvedValueOnce({ ...mockUser, username: 'user-name-test' }),
+          .mockResolvedValueOnce({ ...mockUser, first: 'user-name-test' }),
       } as any);
 
-      const newUser = await service.findOne(updateUser.id);
+      const newUser = await service.getUserById(updateUser.id);
 
-      expect(newUser).toEqual({ ...mockUser, username: 'user-name-test' });
+      expect(newUser).toEqual(
+        mockBuildUserInfo({ ...mockUser, first: 'user-name-test' }),
+      );
     });
   });
 
   describe('Query operations', () => {
-    it('should return all users', async () => {
-      jest.spyOn(model, 'find').mockReturnValue({
-        exec: jest.fn().mockResolvedValueOnce(usersArray),
+    it('should return delete une user by id', async () => {
+      jest.spyOn(model, 'findOneAndDelete').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce(mockBuildDeletedInfo(mockUser)),
       } as any);
-      const users = await service.findAll();
-      expect(users).toEqual(usersArray);
+
+      const userDeleted = await service.remove(mockUser.id);
+      expect(userDeleted).toEqual(mockBuildDeletedInfo(mockUser));
     });
 
     it('should return a user by id', async () => {
@@ -143,8 +161,8 @@ describe('UserService', () => {
         exec: jest.fn().mockResolvedValueOnce(mockUser),
       } as any);
 
-      const newUser = await service.findOne(mockUser._id);
-      expect(newUser).toEqual(mockUser);
+      const newUser = await service.getUserById(mockUser._id);
+      expect(newUser).toEqual(mockBuildUserInfo(mockUser));
     });
   });
 });
