@@ -1,9 +1,9 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-
+import { Model, ObjectId, Types } from 'mongoose';
 import { CreateUserDto } from './dto/create-User.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserTutorialDto } from './dto/update-tutorial-user-dto';
 import { User } from './interfaces/user.interface';
 import * as crypto from 'crypto';
 
@@ -15,14 +15,22 @@ const config = {
 @Injectable()
 export class UserService {
   constructor(@InjectModel('User') private readonly userModel: Model<User>) {}
-
+  /**
+   * Register a new User
+   */
   async register(createUserDto: CreateUserDto): Promise<User> {
     try {
+      const { email, password } = createUserDto;
+      const isEmailUsed = await this.userModel.findOne(
+        { email },
+        { verified: true },
+      );
+      if (isEmailUsed) {
+        throw new BadRequestException('Email most be unique.');
+      }
       const userId = new Types.ObjectId();
 
-      const hashedPassword = UserService.encrypt(createUserDto.password);
-
-      await this.isEmailUnique(createUserDto.email);
+      const hashedPassword = UserService.encrypt(password);
 
       const code = crypto.pseudoRandomBytes(16).toString('hex');
 
@@ -40,7 +48,9 @@ export class UserService {
       return error;
     }
   }
-
+  /**
+   * Load the given _id
+   */
   async getUserById(id: string): Promise<User> {
     try {
       const userById = await this.userModel.findOne({ id }).exec();
@@ -49,24 +59,28 @@ export class UserService {
       return error;
     }
   }
-
+  /**
+   * Update user by id
+   */
   async update(id: string, update: UpdateUserDto): Promise<User> {
     try {
       const userUpdated = await this.userModel
         .findOneAndUpdate(
-          { id },
+          { _id: this.oidFrom(id) },
           {
             $set: update,
           },
         )
         .exec();
-      return this.buildUpdateInfo({ id: userUpdated.id, ...update });
+      return this.buildUpdateInfo({ userId: userUpdated.id, ...update });
     } catch (error) {
       return error;
     }
   }
-
-  async remove(id: string) {
+  /**
+   * Deletes an existing user
+   */
+  async removeUser(id: string): Promise<User> {
     try {
       const removed = await this.userModel.findOneAndDelete({ id }).exec();
       return this.buildDeletedInfo(removed);
@@ -74,7 +88,50 @@ export class UserService {
       return error;
     }
   }
+  /**
+   * Verify the user email by the given code
+   */
+  async verifyEmail(code: string): Promise<User> {
+    try {
+      // Look up for the user by the given code
+      const { _id } = await this.userModel.findOne({ code }).exec();
 
+      // Once found, remove the verification code to clean up the user and verify the email
+      const updatedUser = await this.userModel
+        .findByIdAndUpdate(
+          { _id: this.oidFrom(_id) },
+          { $set: { code: null, codeDate: null, emailPrev: null } },
+        )
+        .exec();
+
+      return this.buildUserInfo(updatedUser);
+    } catch (error) {
+      return error;
+    }
+  }
+  /**
+   * Updates current users tutorial state
+   */
+  async updateTutorial(
+    userId: string,
+    update: UpdateUserTutorialDto,
+  ): Promise<User> {
+    try {
+      const { property, value } = update;
+      const tutorialUpdated = await this.userModel
+        .findByIdAndUpdate(
+          { _id: this.oidFrom(userId) },
+          { $set: { [`tutorial.${property}`]: value } },
+        )
+        .exec();
+      return this.buildUpdateInfo({
+        userId: tutorialUpdated.id,
+        tutorial: { [property]: value },
+      });
+    } catch (error) {
+      return error;
+    }
+  }
   /**
    * Encrypts the password using env salt
    * @param pass
@@ -87,11 +144,11 @@ export class UserService {
       .digest('hex');
   }
 
-  private async isEmailUnique(email: string) {
-    const user = await this.userModel.findOne({ email, verified: true });
-    if (user) {
-      throw new BadRequestException('Email most be unique.');
+  private oidFrom(src: string | ObjectId) {
+    if (typeof src === 'string') {
+      return new Types.ObjectId(src);
     }
+    return src;
   }
 
   private buildUpdateInfo(user): any {

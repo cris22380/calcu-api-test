@@ -6,8 +6,8 @@ import { User } from './interfaces/user.interface';
 
 const mockUser = {
   _id: '6272bd051696dfbbcebf1acf',
-  tutorial: { done: '1' },
-  id: 'userid1',
+  tutorial: null,
+  id: '6272bd051696dfbbcebf1acf',
   email: 'leila_test1@nest.com',
   password: 'qwerty123',
   first: 'leila',
@@ -20,54 +20,20 @@ const mockUser = {
   collapsed: null,
   emailPrev: 'leila.test@calcubox.com',
   creationDate: new Date('2022-05-04T13:39:58.356Z'),
-  code: null,
+  code: 'verifycation.code.id.123456',
   hashedPassword: null,
 };
-
-const usersArray = [
-  {
-    ...mockUser,
-    _id: '6272bd051696dfbbcebf1acf',
-    id: 'userid1',
-    email: 'user1_test1@nest.com',
-    password: 'qwerty123',
-    first: 'user1',
-    last: 'usertest1',
-    emailPrev: 'user1.test@calcubox.com',
-    creationDate: new Date('2022-05-04T13:39:58.356Z'),
-  },
-  {
-    ...mockUser,
-    _id: '6272bea843ae525f30a56b78',
-    email: 'user2_test1@nest.com',
-    password: 'qwerty123',
-    first: 'user2',
-    last: 'usertest2',
-    emailPrev: 'user2.test@calcubox.com',
-    creationDate: new Date('2022-02-04T13:39:58.356Z'),
-  },
-  {
-    ...mockUser,
-    _id: '6272bea843ae525f30a22e45',
-    email: 'user3_test1@nest.com',
-    password: 'qwerty123',
-    first: 'user3',
-    last: 'usertest3',
-    emailPrev: 'user3.test@calcubox.com',
-    creationDate: new Date('2022-02-04T13:39:58.356Z'),
-  },
-];
 
 const MockModel = {
   provide: getModelToken('User'),
   useValue: {
     new: jest.fn().mockResolvedValue(mockUser),
     constructor: jest.fn().mockResolvedValue(mockUser),
-    find: jest.fn(),
     create: jest.fn(),
     findOne: jest.fn(),
     findOneAndUpdate: jest.fn(),
     findOneAndDelete: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
     exec: jest.fn(),
   },
 };
@@ -103,6 +69,7 @@ describe('UserService', () => {
 
     service = module.get<UserService>(UserService);
     model = module.get<Model<User>>(getModelToken('User'));
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -132,17 +99,26 @@ describe('UserService', () => {
         first: 'user-name-test',
       });
 
-      jest.spyOn(model, 'findOne').mockReturnValue({
-        exec: jest
-          .fn()
-          .mockResolvedValueOnce({ ...mockUser, first: 'user-name-test' }),
+      expect(updateUser).toEqual({
+        userId: mockUser.id,
+        first: 'user-name-test',
+      });
+    });
+
+    it('Should update user tutorial', async () => {
+      jest.spyOn(model, 'findByIdAndUpdate').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce(mockUser),
       } as any);
 
-      const newUser = await service.getUserById(updateUser.id);
+      const updateUser = await service.updateTutorial(mockUser._id, {
+        property: 'done',
+        value: 1,
+      });
 
-      expect(newUser).toEqual(
-        mockBuildUserInfo({ ...mockUser, first: 'user-name-test' }),
-      );
+      expect(updateUser).toEqual({
+        userId: mockUser.id,
+        tutorial: { done: 1 },
+      });
     });
   });
 
@@ -152,7 +128,7 @@ describe('UserService', () => {
         exec: jest.fn().mockResolvedValueOnce(mockBuildDeletedInfo(mockUser)),
       } as any);
 
-      const userDeleted = await service.remove(mockUser.id);
+      const userDeleted = await service.removeUser(mockUser.id);
       expect(userDeleted).toEqual(mockBuildDeletedInfo(mockUser));
     });
 
@@ -161,8 +137,21 @@ describe('UserService', () => {
         exec: jest.fn().mockResolvedValueOnce(mockUser),
       } as any);
 
-      const newUser = await service.getUserById(mockUser._id);
+      const newUser = await service.getUserById(mockUser.id);
       expect(newUser).toEqual(mockBuildUserInfo(mockUser));
+    });
+
+    it('should verify email with code', async () => {
+      jest.spyOn(model, 'findOne').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce(mockUser),
+      } as any);
+
+      jest.spyOn(model, 'findByIdAndUpdate').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce(mockUser),
+      } as any);
+
+      const user = await service.verifyEmail(mockUser.code);
+      expect(user).toEqual(mockBuildUserInfo(mockUser));
     });
   });
 });
