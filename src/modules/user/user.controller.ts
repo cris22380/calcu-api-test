@@ -3,49 +3,75 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   Put,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UpdateUserTutorialDto } from './dto/update-tutorial-user-dto';
+import { UpdateUserTutorialDto } from './dto/update-tutorial-user.dto';
+import { UpdatePasswordDto } from './dto/update-password-user.dto';
+import { UserResponse } from './transformers/userResponse';
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
   async register(@Body() createUserDto: CreateUserDto) {
-    return this.userService.register(createUserDto);
+    const newUser = await this.userService.register(createUserDto);
+    return plainToInstance(UserResponse, newUser.toJSON(), {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.getUserById(id);
+  async findOne(@Param('id') id: string) {
+    const user = await this.userService.getUserById(id);
+    return plainToInstance(UserResponse, user.toJSON(), {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get('/verify/email/:code')
-  verifyEmail(@Param('code') code: string) {
-    return this.userService.verifyEmail(code);
+  async verifyEmail(@Param('code') code: string) {
+    const user = await this.userService.verifyEmail(code);
+    return plainToInstance(UserResponse, user.toJSON(), {
+      excludeExtraneousValues: true,
+    });
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(id, updateUserDto);
+  @Put(':id')
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    const user = await this.userService.update(id, updateUserDto);
+    return { userId: user.id, ...updateUserDto };
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.removeUser(id);
+  async remove(@Param('id') id: string) {
+    const removed = await this.userService.removeUser(id);
+    return { userId: removed.id, removed: true };
   }
 
   @Put('/tutorial/:id')
-  updateTutorial(
+  async putTutorial(
     @Param('id') id: string,
     @Body() updateUserTutorialDto: UpdateUserTutorialDto,
   ) {
-    return this.userService.updateTutorial(id, updateUserTutorialDto);
+    const updatedUser = await this.userService.updateTutorial(
+      id,
+      updateUserTutorialDto,
+    );
+    return { userId: updatedUser.id, ...updateUserTutorialDto };
+  }
+
+  @Put('/password/:id')
+  async putPassword(
+    @Param('id') id: string,
+    @Body() updatePasswordDto: UpdatePasswordDto,
+  ) {
+    const updatedUser = await this.userService.password(id, updatePasswordDto);
+    return { userId: updatedUser.id, updatePasword: true };
   }
 }

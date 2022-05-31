@@ -1,22 +1,30 @@
-import { Document } from 'mongoose';
+import { Expose } from 'class-transformer';
 
-export interface User extends Document {
-  _id: string;
+export class UserResponse {
+  @Expose()
   id: string;
+  @Expose()
   username: string;
+  @Expose()
   email: string;
-  password: string;
+  @Expose()
   first: string;
+  @Expose()
   last: string;
+  @Expose()
   location: string;
+  @Expose()
   locale: string;
-  accessToken: string;
+  @Expose()
   tutorial: Record<string, any>;
+  @Expose()
   isBusiness: boolean;
+  @Expose()
   roles: string;
+  @Expose()
   collapsed: string;
-  code: string;
-  hashedPassword: string;
+  @Expose()
   emailPrev: string;
+  @Expose()
   creationDate: Date;
 }

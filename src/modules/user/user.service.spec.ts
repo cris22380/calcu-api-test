@@ -21,7 +21,7 @@ const mockUser = {
   emailPrev: 'leila.test@calcubox.com',
   creationDate: new Date('2022-05-04T13:39:58.356Z'),
   code: 'verifycation.code.id.123456',
-  hashedPassword: null,
+  hashedPassword: '37348339f1932396a8caf4a8a67bd954b0571fcf',
 };
 
 const MockModel = {
@@ -36,27 +36,6 @@ const MockModel = {
     findByIdAndUpdate: jest.fn(),
     exec: jest.fn(),
   },
-};
-
-const mockBuildUserInfo: (user: Record<string, any>) => any = (user) => {
-  const userRegistrationInfo = {
-    email: user.email,
-    first: user.first,
-    last: user.last,
-    location: user.location,
-    locale: user.locale,
-    tutorial: user.tutorial,
-    isBusiness: user.isBusiness,
-    roles: user.roles,
-    collapsed: user.collapsed,
-    emailPrev: user.emailPrev,
-    id: user.id,
-  };
-  return userRegistrationInfo;
-};
-
-const mockBuildDeletedInfo: (user: Record<string, any>) => any = (user) => {
-  return { userDeleted: true, id: user.id };
 };
 
 describe('UserService', () => {
@@ -87,7 +66,7 @@ describe('UserService', () => {
         ...mockUser,
         email: 'newUser@test.com',
       });
-      expect(newUser).toEqual(mockBuildUserInfo(mockUser));
+      expect(newUser).toEqual(mockUser);
     });
 
     it('Should update user data', async () => {
@@ -95,12 +74,23 @@ describe('UserService', () => {
         exec: jest.fn().mockResolvedValueOnce(mockUser),
       } as any);
 
-      const updateUser = await service.update(mockUser.id, {
+      jest.spyOn(model, 'findOne').mockReturnValue({
+        exec: jest
+          .fn()
+          .mockResolvedValueOnce({ ...mockUser, first: 'user-name-test' }),
+      } as any);
+
+      const user = await service.update(mockUser.id, {
         first: 'user-name-test',
       });
 
-      expect(updateUser).toEqual({
-        userId: mockUser.id,
+      const updated = await service.getUserById(user.id);
+
+      expect(user).toEqual({
+        ...mockUser,
+      });
+      expect(updated).toEqual({
+        ...mockUser,
         first: 'user-name-test',
       });
     });
@@ -109,15 +99,51 @@ describe('UserService', () => {
       jest.spyOn(model, 'findByIdAndUpdate').mockReturnValue({
         exec: jest.fn().mockResolvedValueOnce(mockUser),
       } as any);
+      jest.spyOn(model, 'findOne').mockReturnValue({
+        exec: jest
+          .fn()
+          .mockResolvedValueOnce({ ...mockUser, tutorial: { done: 1 } }),
+      } as any);
 
       const updateUser = await service.updateTutorial(mockUser._id, {
         property: 'done',
         value: 1,
       });
 
+      const updated = await service.getUserById(updateUser.id);
+
       expect(updateUser).toEqual({
-        userId: mockUser.id,
+        ...mockUser,
+      });
+      expect(updated).toEqual({
+        ...mockUser,
         tutorial: { done: 1 },
+      });
+    });
+
+    it('Should update user password', async () => {
+      jest.spyOn(model, 'findByIdAndUpdate').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce(mockUser),
+      } as any);
+
+      jest.spyOn(model, 'findOne').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce({
+          ...mockUser,
+          hashedPassword: '91b044070c368d687539dbf5248c5f4662c0a5e2',
+        }),
+      } as any);
+
+      const updateUser = await service.password(mockUser._id, {
+        hashedPassword: '37348339f1932396a8caf4a8a67bd954b0571fcf',
+        currentPassword: 'qwerty123',
+        newPassword: 'asdfgh123',
+      });
+
+      const updated = await service.getUserById(updateUser.id);
+      expect(updateUser).toEqual(mockUser);
+      expect(updated).toEqual({
+        ...mockUser,
+        hashedPassword: '91b044070c368d687539dbf5248c5f4662c0a5e2',
       });
     });
   });
@@ -125,11 +151,11 @@ describe('UserService', () => {
   describe('Query operations', () => {
     it('should return delete une user by id', async () => {
       jest.spyOn(model, 'findOneAndDelete').mockReturnValue({
-        exec: jest.fn().mockResolvedValueOnce(mockBuildDeletedInfo(mockUser)),
+        exec: jest.fn().mockResolvedValueOnce(mockUser),
       } as any);
 
       const userDeleted = await service.removeUser(mockUser.id);
-      expect(userDeleted).toEqual(mockBuildDeletedInfo(mockUser));
+      expect(userDeleted).toEqual(mockUser);
     });
 
     it('should return a user by id', async () => {
@@ -138,7 +164,7 @@ describe('UserService', () => {
       } as any);
 
       const newUser = await service.getUserById(mockUser.id);
-      expect(newUser).toEqual(mockBuildUserInfo(mockUser));
+      expect(newUser).toEqual(mockUser);
     });
 
     it('should verify email with code', async () => {
@@ -151,7 +177,7 @@ describe('UserService', () => {
       } as any);
 
       const user = await service.verifyEmail(mockUser.code);
-      expect(user).toEqual(mockBuildUserInfo(mockUser));
+      expect(user).toEqual(mockUser);
     });
   });
 });
