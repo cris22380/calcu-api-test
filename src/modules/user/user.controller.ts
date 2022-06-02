@@ -14,6 +14,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserTutorialDto } from './dto/update-tutorial-user.dto';
 import { UpdatePasswordDto } from './dto/update-password-user.dto';
 import { UserResponse } from './transformers/userResponse';
+import { UpdateUserResponse } from './transformers/upadateUserResponse';
+import { DeleteUserResponse } from './transformers/deleteUserResponse';
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -45,13 +47,21 @@ export class UserController {
   @Put(':id')
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     const user = await this.userService.update(id, updateUserDto);
-    return { userId: user.id, ...updateUserDto };
+    return plainToInstance(
+      UpdateUserResponse,
+      { userId: user.id, update: updateUserDto },
+      { excludeExtraneousValues: true },
+    );
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
     const removed = await this.userService.removeUser(id);
-    return { userId: removed.id, removed: true };
+    return plainToInstance(
+      DeleteUserResponse,
+      { userId: removed.id, removed: true },
+      { exposeDefaultValues: true },
+    );
   }
 
   @Put('/tutorial/:id')
@@ -63,7 +73,12 @@ export class UserController {
       id,
       updateUserTutorialDto,
     );
-    return { userId: updatedUser.id, ...updateUserTutorialDto };
+
+    return plainToInstance(
+      UpdateUserResponse,
+      { userId: updatedUser.id, update: updateUserTutorialDto },
+      { excludeExtraneousValues: true },
+    );
   }
 
   @Put('/password/:id')
@@ -72,6 +87,10 @@ export class UserController {
     @Body() updatePasswordDto: UpdatePasswordDto,
   ) {
     const updatedUser = await this.userService.password(id, updatePasswordDto);
-    return { userId: updatedUser.id, updatePasword: true };
+    return plainToInstance(
+      UpdateUserDto,
+      { userId: updatedUser.id, update: { updatePasword: true } },
+      { excludeExtraneousValues: true },
+    );
   }
 }
