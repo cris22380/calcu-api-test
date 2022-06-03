@@ -13,6 +13,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserTutorialDto } from './dto/update-tutorial-user.dto';
 import { UpdatePasswordDto } from './dto/update-password-user.dto';
+import { PasswordRequestUserDto } from './dto/password-request-user.dto';
 import { UserResponse } from './transformers/userResponse';
 import { UpdateUserResponse } from './transformers/upadateUserResponse';
 import { DeleteUserResponse } from './transformers/deleteUserResponse';
@@ -92,5 +93,10 @@ export class UserController {
       { userId: updatedUser.id, update: { updatePasword: true } },
       { excludeExtraneousValues: true },
     );
+  }
+
+  @Post('/password/request')
+  async passwordRequest(@Body() email: PasswordRequestUserDto) {
+    return this.userService.passwordRequest(email);
   }
 }

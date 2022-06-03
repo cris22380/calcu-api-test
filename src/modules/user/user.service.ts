@@ -5,7 +5,9 @@ import { CreateUserDto } from './dto/create-User.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserTutorialDto } from './dto/update-tutorial-user.dto';
 import { UpdatePasswordDto } from './dto/update-password-user.dto';
+import { PasswordRequestUserDto } from './dto/password-request-user.dto';
 import { User } from './interfaces/user.interface';
+import { EventsDaoService } from '../events-dao/events-dao.service';
 import * as crypto from 'crypto';
 
 // esto es para prueba en dev
@@ -15,7 +17,10 @@ const config = {
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel('User') private readonly userModel: Model<User>) {}
+  constructor(
+    @InjectModel('User') private readonly userModel: Model<User>,
+    private readonly evenDaotService: EventsDaoService,
+  ) {}
   /**
    * Register a new User
    */
@@ -131,6 +136,39 @@ export class UserService {
         { $set: { hashedPassword: UserService.encrypt(newPassword) } },
       )
       .exec();
+  }
+
+  /**
+   * Register a forgot password event and sends out the email to the user.
+   */
+
+  async passwordRequest(email: PasswordRequestUserDto): Promise<any> {
+    const user = await this.userModel.findOne(email).exec();
+    const event = await this.evenDaotService.register({
+      userId: new Types.ObjectId(user._id),
+    });
+    const result = {
+      event,
+      user,
+    };
+    return result;
+  }
+
+  /**
+   * Verify the user forgot request by the given key
+   */
+  async verifyPasswordKey(key: string): Promise<User> {
+    // Look up for the user by the given code
+    const event = await this.evenDaotService.getById(key);
+
+    if (!event) {
+      throw new BadRequestException({
+        error: 404,
+        message: `Password key no longer valid ${key}`,
+      });
+    }
+    const { userId } = event;
+    return this.getUserById(userId);
   }
 
   /**

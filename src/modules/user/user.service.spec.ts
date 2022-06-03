@@ -3,51 +3,26 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserService } from './user.service';
 import { User } from './interfaces/user.interface';
-
-const mockUser = {
-  _id: '6272bd051696dfbbcebf1acf',
-  tutorial: null,
-  id: '6272bd051696dfbbcebf1acf',
-  email: 'leila_test1@nest.com',
-  password: 'qwerty123',
-  first: 'leila',
-  last: 'caraca',
-  location: null,
-  locale: null,
-  accessToken: null,
-  isBusiness: true,
-  roles: null,
-  collapsed: null,
-  emailPrev: 'leila.test@calcubox.com',
-  creationDate: new Date('2022-05-04T13:39:58.356Z'),
-  code: 'verifycation.code.id.123456',
-  hashedPassword: '37348339f1932396a8caf4a8a67bd954b0571fcf',
-};
-
-const MockModel = {
-  provide: getModelToken('User'),
-  useValue: {
-    new: jest.fn().mockResolvedValue(mockUser),
-    constructor: jest.fn().mockResolvedValue(mockUser),
-    create: jest.fn(),
-    findOne: jest.fn(),
-    findOneAndUpdate: jest.fn(),
-    findOneAndDelete: jest.fn(),
-    findByIdAndUpdate: jest.fn(),
-    exec: jest.fn(),
-  },
-};
+import { EventsDao } from '../events-dao/interfaces/events-dao.interface';
+import { EventsDaoService } from '../events-dao/events-dao.service';
+import { mockUser, MockUserModel } from './mocks/user.mocks';
+import {
+  MockEventModel,
+  mockEventDao,
+} from '../events-dao/mocks/events-dao.mocks';
 
 describe('UserService', () => {
   let service: UserService;
   let model: Model<User>;
+  let eventModel: Model<EventsDao>;
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService, MockModel],
+      providers: [UserService, MockUserModel, MockEventModel, EventsDaoService],
     }).compile();
 
     service = module.get<UserService>(UserService);
     model = module.get<Model<User>>(getModelToken('User'));
+    eventModel = module.get<Model<EventsDao>>(getModelToken('Events.timed'));
     jest.clearAllMocks();
   });
 
@@ -178,6 +153,36 @@ describe('UserService', () => {
 
       const user = await service.verifyEmail(mockUser.code);
       expect(user).toEqual(mockUser);
+    });
+
+    it('should send a password request', async () => {
+      jest
+        .spyOn(eventModel, 'create')
+        .mockImplementationOnce(() => Promise.resolve(mockEventDao));
+
+      jest.spyOn(model, 'findOne').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce(mockUser),
+      } as any);
+
+      const passwordRequest = await service.passwordRequest({
+        email: mockUser.email,
+      });
+
+      expect(passwordRequest).toEqual({ event: mockEventDao, user: mockUser });
+    });
+
+    it('should verify a password key', async () => {
+      jest.spyOn(eventModel, 'findById').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce(mockEventDao),
+      } as any);
+
+      jest.spyOn(model, 'findOne').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce(mockUser),
+      } as any);
+
+      const verified = await service.verifyPasswordKey(mockUser._id);
+
+      expect(verified).toEqual(mockUser);
     });
   });
 });
