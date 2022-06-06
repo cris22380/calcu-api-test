@@ -9,6 +9,7 @@ import { PasswordRequestUserDto } from './dto/password-request-user.dto';
 import { User } from './interfaces/user.interface';
 import { EventsDaoService } from '../events-dao/events-dao.service';
 import * as crypto from 'crypto';
+import { SetAccountPlanDto } from './dto/set-account-plan.dto';
 
 // esto es para prueba en dev
 const config = {
@@ -172,6 +173,25 @@ export class UserService {
   }
 
   /**
+   * Sets the user account plan
+   */
+  async setAccountPlan(
+    userId: string,
+    update: SetAccountPlanDto,
+  ): Promise<User> {
+    const { referral, planId } = update;
+    return this.userModel
+      .findByIdAndUpdate(
+        { _id: this.oidFrom(userId) },
+        {
+          referral,
+          planId,
+        },
+      )
+      .exec();
+  }
+
+  /**
    * Encrypts the password using env salt
    * @param pass
    */
@@ -183,10 +203,7 @@ export class UserService {
       .digest('hex');
   }
 
-  private oidFrom(src: string | ObjectId) {
-    if (typeof src === 'string') {
-      return new Types.ObjectId(src);
-    }
-    return src;
+  private oidFrom(src: string) {
+    return new Types.ObjectId(src);
   }
 }

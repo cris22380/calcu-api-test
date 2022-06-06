@@ -44,7 +44,7 @@ describe('UserService', () => {
       expect(newUser).toEqual(mockUser);
     });
 
-    it('Should update user data', async () => {
+    it('should update user data', async () => {
       jest.spyOn(model, 'findOneAndUpdate').mockReturnValue({
         exec: jest.fn().mockResolvedValueOnce(mockUser),
       } as any);
@@ -70,7 +70,7 @@ describe('UserService', () => {
       });
     });
 
-    it('Should update user tutorial', async () => {
+    it('should update user tutorial', async () => {
       jest.spyOn(model, 'findByIdAndUpdate').mockReturnValue({
         exec: jest.fn().mockResolvedValueOnce(mockUser),
       } as any);
@@ -96,7 +96,7 @@ describe('UserService', () => {
       });
     });
 
-    it('Should update user password', async () => {
+    it('should update user password', async () => {
       jest.spyOn(model, 'findByIdAndUpdate').mockReturnValue({
         exec: jest.fn().mockResolvedValueOnce(mockUser),
       } as any);
@@ -119,6 +119,34 @@ describe('UserService', () => {
       expect(updated).toEqual({
         ...mockUser,
         hashedPassword: '91b044070c368d687539dbf5248c5f4662c0a5e2',
+      });
+    });
+
+    it('should update user accout plan', async () => {
+      jest.spyOn(model, 'findByIdAndUpdate').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce(mockUser),
+      } as any);
+      jest.spyOn(model, 'findOne').mockReturnValue({
+        exec: jest.fn().mockResolvedValueOnce({
+          ...mockUser,
+          planId: 'plan-id-121212',
+          referral: { OFERTONA: 'ofertona-id-1211212' },
+        }),
+      } as any);
+      const updateUser = await service.setAccountPlan(mockUser._id, {
+        planId: 'plan-id-121212',
+        referral: { OFERTONA: 'ofertona-id-1211212' },
+      });
+
+      const updated = await service.getUserById(updateUser.id);
+
+      expect(updateUser).toEqual({
+        ...mockUser,
+      });
+      expect(updated).toEqual({
+        ...mockUser,
+        planId: 'plan-id-121212',
+        referral: { OFERTONA: 'ofertona-id-1211212' },
       });
     });
   });
