@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { EventsDao } from './interfaces/events-dao.interface';
-import { CreateEventDaoDto } from './dto/create-event-dao.dto';
+import { Events } from './interfaces/events.interface';
+import { CreateEventsDto } from './dto/create-events.dto';
 
 @Injectable()
-export class EventsDaoService {
+export class EventsService {
   constructor(
-    @InjectModel('Events.timed') private readonly eventModel: Model<EventsDao>,
+    @InjectModel('Events.timed') private readonly eventModel: Model<Events>,
   ) {}
   /**
    * To register an event that will expire in 4hs
    */
-  async register(event: CreateEventDaoDto): Promise<EventsDao> {
+  async register(event: CreateEventsDto): Promise<Events> {
     return this.eventModel.create({
       ...event,
       _id: new Types.ObjectId(),
@@ -20,7 +20,7 @@ export class EventsDaoService {
     });
   }
 
-  async getById(key: string): Promise<EventsDao> {
+  async getById(key: string): Promise<Events> {
     // Look up for the user by the given code
     return this.eventModel
       .findById({

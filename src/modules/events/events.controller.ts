@@ -1,9 +1,9 @@
 import { Controller } from '@nestjs/common';
-import { EventsDaoService } from './events-dao.service';
+import { EventsService } from './events.service';
 
 @Controller('event-user')
-export class EventsDaoController {
-  constructor(private readonly eventService: EventsDaoService) {}
+export class EventsController {
+  constructor(private readonly eventService: EventsService) {}
 
   // solo lo uso para limpiar la db en desarrollo
   // @Get()

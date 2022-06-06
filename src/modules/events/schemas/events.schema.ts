@@ -1,6 +1,6 @@
 import * as mongoose from 'mongoose';
 
-export const EventDaoSchema = new mongoose.Schema(
+export const EventsSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,

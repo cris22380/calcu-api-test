@@ -3,14 +3,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { UserSchema } from './schemas/user.schema';
-import { EventsDaoModule } from '../events-dao/event-dao.module';
+import { EventsModule } from '../events/events.module';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
-    EventsDaoModule,
+    EventsModule,
   ],
   controllers: [UserController],
-  providers: [UserService, EventsDaoModule],
+  providers: [UserService, EventsModule],
   exports: [UserService],
 })
 export class UserModule {}

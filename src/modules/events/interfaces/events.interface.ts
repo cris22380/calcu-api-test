@@ -1,5 +1,5 @@
 import { Document } from 'mongoose';
 
-export interface EventsDao extends Document {
+export interface Events extends Document {
   userId: string;
 }

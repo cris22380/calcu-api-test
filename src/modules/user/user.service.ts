@@ -1,13 +1,13 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, ObjectId, Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateUserDto } from './dto/create-User.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserTutorialDto } from './dto/update-tutorial-user.dto';
 import { UpdatePasswordDto } from './dto/update-password-user.dto';
 import { PasswordRequestUserDto } from './dto/password-request-user.dto';
 import { User } from './interfaces/user.interface';
-import { EventsDaoService } from '../events-dao/events-dao.service';
+import { EventsService } from '../events/events.service';
 import * as crypto from 'crypto';
 import { SetAccountPlanDto } from './dto/set-account-plan.dto';
 
@@ -20,7 +20,7 @@ const config = {
 export class UserService {
   constructor(
     @InjectModel('User') private readonly userModel: Model<User>,
-    private readonly evenDaotService: EventsDaoService,
+    private readonly evenDaotService: EventsService,
   ) {}
   /**
    * Register a new User
